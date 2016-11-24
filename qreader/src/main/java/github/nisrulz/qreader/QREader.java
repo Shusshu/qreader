@@ -48,7 +48,7 @@ public class QREader {
    */
   public static final int BACK_CAM = CameraSource.CAMERA_FACING_BACK;
 
-  private final String autofocusMode;
+  private final String[] autofocusModes;
   private final String flashMode;
   private final int width;
   private final int height;
@@ -93,7 +93,7 @@ public class QREader {
    * @param builder the builder
    */
   public QREader(final Builder builder) {
-    this.autofocusMode = builder.autofocusMode;
+    this.autofocusModes = builder.autofocusModes;
     this.flashMode = builder.flashMode;
     this.width = builder.width;
     this.height = builder.height;
@@ -153,8 +153,8 @@ public class QREader {
               .setFacing(facing)
               .setRequestedPreviewSize(width, height);
 
-        if (autofocusMode != null) {
-            cameraSourceBuilder.setFocusMode(autofocusMode);
+        if (autofocusModes != null) {
+            cameraSourceBuilder.setFocusModes(autofocusModes);
         }
         if (flashMode != null) {
             cameraSourceBuilder.setFlashMode(flashMode);
@@ -244,7 +244,7 @@ public class QREader {
    * The type Builder.
    */
   public static class Builder {
-    private String autofocusMode;
+    private String[] autofocusModes;
     private String flashMode;
     private int width;
     private int height;
@@ -276,12 +276,12 @@ public class QREader {
     /**
      * autofocusMode builder.
      *
-     * @param autofocusMode
-     *     the autofocusMode
+     * @param autofocusModes
+     *     the autofocusModes in order of priority
      * @return the builder
      */
-    public Builder setFocusMode(@CameraSource.FocusMode String autofocusMode) {
-      this.autofocusMode = autofocusMode;
+    public Builder setFocusModes(@CameraSource.FocusMode String ... autofocusModes) {
+      this.autofocusModes = autofocusModes;
       return this;
     }
 

@@ -138,7 +138,7 @@ public class CameraSource {
     private int mRequestedPreviewHeight = 768;
 
 
-    private String mFocusMode = null;
+    private String[] mFocusModes = null;
     private String mFlashMode = null;
 
     // These instances need to be held onto to avoid GC of their underlying resources.  Even though
@@ -200,8 +200,14 @@ public class CameraSource {
             return this;
         }
 
-        public Builder setFocusMode(@FocusMode String mode) {
-            mCameraSource.mFocusMode = mode;
+        /**
+         * In order of priority
+         *
+         * @param modes
+         * @return
+         */
+        public Builder setFocusModes(@FocusMode String ... modes) {
+            mCameraSource.mFocusModes = modes;
             return this;
         }
 
@@ -521,26 +527,28 @@ public class CameraSource {
      */
     @Nullable
     @FocusMode
-    public String getFocusMode() {
-        return mFocusMode;
+    public String[] getFocusModes() {
+        return mFocusModes;
     }
 
     /**
-     * Sets the focus mode.
+     * Sets the focus mode in order of priority which the camera supports.
      *
-     * @param mode the focus mode
+     * @param modes the focus mode
      * @return {@code true} if the focus mode is set, {@code false} otherwise
-     * @see #getFocusMode()
+     * @see #getFocusModes()
      */
-    public boolean setFocusMode(@FocusMode String mode) {
+    public boolean setFocusModes(@FocusMode String ... modes) {
         synchronized (mCameraLock) {
-            if (mCamera != null && mode != null) {
+            if (mCamera != null && modes != null) {
+                mFocusModes = modes;
                 Camera.Parameters parameters = mCamera.getParameters();
-                if (parameters.getSupportedFocusModes().contains(mode)) {
-                    parameters.setFocusMode(mode);
-                    mCamera.setParameters(parameters);
-                    mFocusMode = mode;
-                    return true;
+                for (String mode : modes) {
+                    if (parameters.getSupportedFocusModes().contains(mode)) {
+                        parameters.setFocusMode(mode);
+                        mCamera.setParameters(parameters);
+                        return true;
+                    }
                 }
             }
 
@@ -594,7 +602,7 @@ public class CameraSource {
      * (between {@link #start()} or {@link #start(SurfaceHolder)} and before {@link #stop()} or {@link #release()}).
      * <p/>
      * <p>Callers should check
-     * {@link #getFocusMode()} to determine if
+     * {@link #getFocusModes()} to determine if
      * this method should be called. If the camera does not support auto-focus,
      * it is a no-op and {@link AutoFocusCallback#onAutoFocus(boolean)}
      * callback will be called immediately.
@@ -773,17 +781,21 @@ public class CameraSource {
 
         setRotation(camera, parameters, requestedCameraId);
 
-        if (mFocusMode != null) {
-            if (parameters.getSupportedFocusModes().contains(
-                    mFocusMode)) {
-                parameters.setFocusMode(mFocusMode);
-            } else {
-                Log.i(TAG, "Camera focus mode: " + mFocusMode + " is not supported on this device.");
+        if (mFocusModes != null) {
+            boolean focusModeFound = false;
+            for (final String focusMode : mFocusModes) {
+                if (parameters.getSupportedFocusModes().contains(focusMode)) {
+                    parameters.setFocusMode(focusMode);
+                    focusModeFound = true;
+                }
+            }
+            if (!focusModeFound) {
+                Log.i(TAG, "Non of the provided focusmodes are supported on this device.");
             }
         }
 
         // setting mFocusMode to the one set in the params
-        mFocusMode = parameters.getFocusMode();
+        mFocusModes = new String[] { parameters.getFocusMode() };
 
         if (mFlashMode != null) {
             if (parameters.getSupportedFlashModes() != null) {

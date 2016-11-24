@@ -18,6 +18,7 @@ package github.nisrulz.projectqreader;
 
 import android.annotation.TargetApi;
 import android.content.Intent;
+import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -69,7 +70,8 @@ public class MainActivity extends AppCompatActivity implements QRDataListener {
 
   private void initAndStartQrReader(int previewWidth, int previewHeight) {
     qrEader = new QREader.Builder(MainActivity.this, surfaceView, MainActivity.this).facing(
-        QREader.BACK_CAM).enableAutofocus(true).height(previewHeight).width(previewWidth).build();
+        QREader.BACK_CAM).setFocusModes(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE, Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO).height(previewHeight).width
+            (previewWidth).build();
     qrEader.init();
 
     findViewById(R.id.btn_restart_activity).setOnClickListener(new View.OnClickListener() {
