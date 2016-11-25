@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity implements QRDataListener {
 
   private void initAndStartQrReader(int previewWidth, int previewHeight) {
     qrEader = new QREader.Builder(MainActivity.this, surfaceView, MainActivity.this).facing(
-        QREader.BACK_CAM).setFocusModes(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE, Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO).height(previewHeight).width
+        QREader.BACK_CAM).setFocusModes(Camera.Parameters.FOCUS_MODE_AUTO).height(previewHeight).width
             (previewWidth).build();
     qrEader.init();
 

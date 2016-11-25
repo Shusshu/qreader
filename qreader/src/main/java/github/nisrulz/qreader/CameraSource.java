@@ -91,6 +91,7 @@ public class CameraSource {
      * ratio is less than this tolerance, they are considered to be the same aspect ratio.
      */
     private static final float ASPECT_RATIO_TOLERANCE = 0.01f;
+    private AutoFocusManager autoFocusManager;
 
     @StringDef({
             Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE,
@@ -358,6 +359,7 @@ public class CameraSource {
                 mCamera.setPreviewDisplay(mDummySurfaceView.getHolder());
             }
             mCamera.startPreview();
+            autoFocusManager = new AutoFocusManager(mCamera);
 
             mProcessingThread = new Thread(mFrameProcessor);
             mFrameProcessor.setActive(true);
@@ -383,6 +385,7 @@ public class CameraSource {
             mCamera = createCamera();
             mCamera.setPreviewDisplay(surfaceHolder);
             mCamera.startPreview();
+            autoFocusManager = new AutoFocusManager(mCamera);
 
             mProcessingThread = new Thread(mFrameProcessor);
             mFrameProcessor.setActive(true);
@@ -419,6 +422,10 @@ public class CameraSource {
             mBytesToByteBuffer.clear();
 
             if (mCamera != null) {
+                if (autoFocusManager != null) {
+                    autoFocusManager.stop();
+                    autoFocusManager = null;
+                }
                 mCamera.stopPreview();
                 mCamera.setPreviewCallbackWithBuffer(null);
                 try {
