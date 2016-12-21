@@ -17,14 +17,18 @@
 package github.nisrulz.qreader;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import android.view.View;
+import android.view.ViewTreeObserver;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
@@ -35,7 +39,7 @@ import java.io.IOException;
  * QREader Singleton.
  */
 public class QREader {
-  private static final String LOGTAG = "QREader";
+  private final String LOGTAG = getClass().getSimpleName();
   private CameraSource cameraSource = null;
   private BarcodeDetector barcodeDetector = null;
 
@@ -61,7 +65,31 @@ public class QREader {
 
   private boolean surfaceCreated = false;
 
-  private SurfaceHolder.Callback surfaceHolderCallback = new SurfaceHolder.Callback() {
+  public void initAndStart(final SurfaceView surfaceView) {
+
+    surfaceView.getViewTreeObserver()
+        .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+          @Override
+          public void onGlobalLayout() {
+            init();
+            start();
+            removeOnGlobalLayoutListener(surfaceView, this);
+          }
+        });
+  }
+
+  @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+  private static void removeOnGlobalLayoutListener(View v,
+      ViewTreeObserver.OnGlobalLayoutListener listener) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+      v.getViewTreeObserver().removeGlobalOnLayoutListener(listener);
+    }
+    else {
+      v.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
+    }
+  }
+
+  private final SurfaceHolder.Callback surfaceHolderCallback = new SurfaceHolder.Callback() {
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
       //we can start barcode after after creating
@@ -82,15 +110,10 @@ public class QREader {
   };
 
   /**
-   * Instantiates a new Qr eader.
+   * Instantiates a new QREader.
    *
    * @param builder
    *     the builder
-   */
-/*
-   * Instantiates a new Qr eader.
-   *
-   * @param builder the builder
    */
   public QREader(final Builder builder) {
     this.autofocusModes = builder.autofocusModes;
@@ -122,7 +145,7 @@ public class QREader {
   /**
    * Init.
    */
-  public void init() {
+  private void init() {
     if (!hasCameraHardware(context)) {
       Log.e(LOGTAG, "Does not have camera hardware!");
       return;
@@ -219,7 +242,7 @@ public class QREader {
   }
 
   /**
-   * Release and cleanup qreader.
+   * Release and cleanup QREader.
    */
   public void releaseAndCleanup() {
     stop();
@@ -249,9 +272,9 @@ public class QREader {
     private int width;
     private int height;
     private int facing;
-    private QRDataListener qrDataListener;
-    private Context context;
-    private SurfaceView surfaceView;
+    private final QRDataListener qrDataListener;
+    private final Context context;
+    private final SurfaceView surfaceView;
     private BarcodeDetector barcodeDetector;
 
     /**
@@ -305,7 +328,9 @@ public class QREader {
      * @return the builder
      */
     public Builder width(int width) {
-      this.width = width;
+      if (width != 0) {
+        this.width = width;
+      }
       return this;
     }
 
@@ -317,7 +342,9 @@ public class QREader {
      * @return the builder
      */
     public Builder height(int height) {
-      this.height = height;
+      if (height != 0) {
+        this.height = height;
+      }
       return this;
     }
 
@@ -334,9 +361,9 @@ public class QREader {
     }
 
     /**
-     * Build qr eader.
+     * Build QREader
      *
-     * @return the qr eader
+     * @return the QREader
      */
     public QREader build() {
       return new QREader(this);
