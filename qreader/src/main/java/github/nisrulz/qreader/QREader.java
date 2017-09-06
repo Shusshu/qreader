@@ -17,13 +17,17 @@
 package github.nisrulz.qreader;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
+import android.view.ViewTreeObserver;
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.barcode.Barcode;
@@ -34,10 +38,6 @@ import java.io.IOException;
  * QREader Singleton.
  */
 public class QREader {
-  private static final String LOGTAG = "QREader";
-  private CameraSource cameraSource = null;
-  private BarcodeDetector barcodeDetector = null;
-
   /**
    * The constant FRONT_CAM.
    */
@@ -46,20 +46,21 @@ public class QREader {
    * The constant BACK_CAM.
    */
   public static final int BACK_CAM = CameraSource.CAMERA_FACING_BACK;
-
+  private final String LOGTAG = getClass().getSimpleName();
   private final int width;
   private final int height;
   private final int facing;
   private final QRDataListener qrDataListener;
   private final Context context;
   private final SurfaceView surfaceView;
+  private CameraSource cameraSource = null;
+  private BarcodeDetector barcodeDetector = null;
   private boolean autoFocusEnabled;
 
   private boolean cameraRunning = false;
 
   private boolean surfaceCreated = false;
-
-  private SurfaceHolder.Callback surfaceHolderCallback = new SurfaceHolder.Callback() {
+  private final SurfaceHolder.Callback surfaceHolderCallback = new SurfaceHolder.Callback() {
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
       //we can start barcode after after creating
@@ -80,17 +81,17 @@ public class QREader {
   };
 
   /**
-   * Instantiates a new Qr eader.
+   * Instantiates a new QREader.
    *
    * @param builder
    *     the builder
    */
 /*
-   * Instantiates a new Qr eader.
+   * Instantiates a new QREader
    *
    * @param builder the builder
    */
-  public QREader(final Builder builder) {
+  private QREader(final Builder builder) {
     this.autoFocusEnabled = builder.autofocusEnabled;
     this.width = builder.width;
     this.height = builder.height;
@@ -107,19 +108,23 @@ public class QREader {
     }
   }
 
-  /**
-   * Is camera running boolean.
-   *
-   * @return the boolean
-   */
-  public boolean isCameraRunning() {
-    return cameraRunning;
+  public void initAndStart(final SurfaceView surfaceView) {
+
+    surfaceView.getViewTreeObserver()
+        .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+          @Override
+          public void onGlobalLayout() {
+            init();
+            start();
+            removeOnGlobalLayoutListener(surfaceView, this);
+          }
+        });
   }
 
   /**
    * Init.
    */
-  public void init() {
+  private void init() {
     if (!hasAutofocus(context)) {
       Log.e(LOGTAG, "Do not have autofocus feature, disabling autofocus feature in the library!");
       autoFocusEnabled = false;
@@ -177,6 +182,31 @@ public class QREader {
     }
   }
 
+  @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+  private static void removeOnGlobalLayoutListener(View v,
+      ViewTreeObserver.OnGlobalLayoutListener listener) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+      v.getViewTreeObserver().removeGlobalOnLayoutListener(listener);
+    }
+    else {
+      v.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
+    }
+  }
+
+  private boolean hasAutofocus(Context context) {
+    return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_AUTOFOCUS);
+  }
+
+  private boolean hasCameraHardware(Context context) {
+    return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA);
+  }
+
+  private boolean checkCameraPermission(Context context) {
+    String permission = Manifest.permission.CAMERA;
+    int res = context.checkCallingOrSelfPermission(permission);
+    return res == PackageManager.PERMISSION_GRANTED;
+  }
+
   private void startCameraView(Context context, CameraSource cameraSource,
       SurfaceView surfaceView) {
     if (cameraRunning) {
@@ -198,6 +228,27 @@ public class QREader {
   }
 
   /**
+   * Is camera running boolean.
+   *
+   * @return the boolean
+   */
+  public boolean isCameraRunning() {
+    return cameraRunning;
+  }
+
+  /**
+   * Release and cleanup QREader.
+   */
+  public void releaseAndCleanup() {
+    stop();
+    if (cameraSource != null) {
+      //release camera and barcode detector(will invoke inside) resources
+      cameraSource.release();
+      cameraSource = null;
+    }
+  }
+
+  /**
    * Stop camera
    */
   public void stop() {
@@ -213,42 +264,16 @@ public class QREader {
   }
 
   /**
-   * Release and cleanup qreader.
-   */
-  public void releaseAndCleanup() {
-    stop();
-    if (cameraSource != null) {
-      //release camera and barcode detector(will invoke inside) resources
-      cameraSource.release();
-      cameraSource = null;
-    }
-  }
-
-  private boolean checkCameraPermission(Context context) {
-    String permission = Manifest.permission.CAMERA;
-    int res = context.checkCallingOrSelfPermission(permission);
-    return res == PackageManager.PERMISSION_GRANTED;
-  }
-
-  private boolean hasCameraHardware(Context context) {
-    return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA);
-  }
-
-  private boolean hasAutofocus(Context context) {
-    return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_AUTOFOCUS);
-  }
-
-  /**
    * The type Builder.
    */
   public static class Builder {
+    private final QRDataListener qrDataListener;
+    private final Context context;
+    private final SurfaceView surfaceView;
     private boolean autofocusEnabled;
     private int width;
     private int height;
     private int facing;
-    private QRDataListener qrDataListener;
-    private Context context;
-    private SurfaceView surfaceView;
     private BarcodeDetector barcodeDetector;
 
     /**
@@ -291,7 +316,9 @@ public class QREader {
      * @return the builder
      */
     public Builder width(int width) {
-      this.width = width;
+      if (width != 0) {
+        this.width = width;
+      }
       return this;
     }
 
@@ -303,7 +330,9 @@ public class QREader {
      * @return the builder
      */
     public Builder height(int height) {
-      this.height = height;
+      if (height != 0) {
+        this.height = height;
+      }
       return this;
     }
 
@@ -320,9 +349,9 @@ public class QREader {
     }
 
     /**
-     * Build qr eader.
+     * Build QREader
      *
-     * @return the qr eader
+     * @return the QREader
      */
     public QREader build() {
       return new QREader(this);

@@ -18,7 +18,9 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/colorPrimaryDark"
     android:gravity="center"
+    android:padding="20dp"
     >
   <SurfaceView
       android:id="@+id/camera_view"
@@ -40,16 +42,15 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:padding="10dp"
-        android:text="Point the camera view to a QR Code to read the information"
+        android:text="@string/intro_text"
+        android:textColor="@android:color/white"
         android:textSize="20sp"
         />
     <Button
         android:id="@+id/btn_start_stop"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_margin="16dp"
-        android:text="Stop/Start reader"
+        android:text="@string/stop_start_qreader"
         />
 
 
@@ -58,9 +59,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:text="Restart Activity"
+        android:text="@string/restart_activity"
         />
-
-
   </LinearLayout>
 </RelativeLayout>

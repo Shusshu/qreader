@@ -16,120 +16,144 @@
 
 package github.nisrulz.projectqreader;
 
-import android.annotation.TargetApi;
+import android.Manifest;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.TextView;
 import github.nisrulz.qreader.QRDataListener;
 import github.nisrulz.qreader.QREader;
 
-public class MainActivity extends AppCompatActivity implements QRDataListener {
-  private SurfaceView surfaceView;
+public class MainActivity extends AppCompatActivity {
+
+  private static final String cameraPerm = Manifest.permission.CAMERA;
+
+  // UI
   private TextView text;
-  private Button stateBtn;
+
+  // QREader
+  private SurfaceView mySurfaceView;
   private QREader qrEader;
+
+  boolean hasCameraPermission = false;
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+    hasCameraPermission = RuntimePermissionUtil.checkPermissonGranted(this, cameraPerm);
 
-    surfaceView = (SurfaceView) findViewById(R.id.camera_view);
-    text = (TextView) findViewById(R.id.code_info);
-    stateBtn = (Button) findViewById(R.id.btn_start_stop);
+    text = findViewById(R.id.code_info);
 
-    surfaceView.getViewTreeObserver()
-        .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-          @Override
-          public void onGlobalLayout() {
-            //to pass surfaceView size to camera preview
-            initAndStartQrReader(surfaceView.getWidth(), surfaceView.getHeight());
-            removeOnGlobalLayoutListener(surfaceView, this);
-          }
-        });
-  }
-
-  @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-  public static void removeOnGlobalLayoutListener(View v,
-      ViewTreeObserver.OnGlobalLayoutListener listener) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
-      v.getViewTreeObserver().removeGlobalOnLayoutListener(listener);
-    }
-    else {
-      v.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
-    }
-  }
-
-  private void initAndStartQrReader(int previewWidth, int previewHeight) {
-    qrEader = new QREader.Builder(MainActivity.this, surfaceView, MainActivity.this).facing(
-        QREader.BACK_CAM).enableAutofocus(true).height(previewHeight).width(previewWidth).build();
-    qrEader.init();
-
-    findViewById(R.id.btn_restart_activity).setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        startActivity(new Intent(MainActivity.this, MainActivity.class));
-        finish();
-      }
-    });
-
-    qrEader.start();
-
+    final Button stateBtn = findViewById(R.id.btn_start_stop);
     // change of reader state in dynamic
     stateBtn.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
         if (qrEader.isCameraRunning()) {
+          stateBtn.setText("Start QREader");
           qrEader.stop();
-        }
-        else {
+        } else {
+          stateBtn.setText("Stop QREader");
           qrEader.start();
         }
       }
     });
+
     stateBtn.setVisibility(View.VISIBLE);
+
+    Button restartbtn = findViewById(R.id.btn_restart_activity);
+    restartbtn.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        restartActivity();
+      }
+    });
+
+    // Setup SurfaceView
+    // -----------------
+    mySurfaceView = findViewById(R.id.camera_view);
+
+    if (hasCameraPermission) {
+      // Setup QREader
+      setupQREader();
+    } else {
+      RuntimePermissionUtil.requestPermission(MainActivity.this, cameraPerm, 100);
+    }
   }
 
-  @Override
-  protected void onResume() {
-    super.onResume();
-    if (qrEader != null) {
-      qrEader.start();
-    }
+  void restartActivity() {
+    startActivity(new Intent(MainActivity.this, MainActivity.class));
+    finish();
+  }
+
+  void setupQREader() {
+    // Init QREader
+    // ------------
+    qrEader = new QREader.Builder(this, mySurfaceView, new QRDataListener() {
+      @Override
+      public void onDetected(final String data) {
+        Log.d("QREader", "Value : " + data);
+        text.post(new Runnable() {
+          @Override
+          public void run() {
+            text.setText(data);
+          }
+        });
+      }
+    }).facing(QREader.BACK_CAM)
+        .enableAutofocus(true)
+        .height(mySurfaceView.getHeight())
+        .width(mySurfaceView.getWidth())
+        .build();
   }
 
   @Override
   protected void onPause() {
     super.onPause();
-    if (qrEader != null) {
-      qrEader.stop();
-    }
-  }
 
-  @Override
-  protected void onDestroy() {
-    super.onDestroy();
-    //free resources of camera and google barcode decoder
-    if (qrEader != null) {
+    if (hasCameraPermission) {
+
+      // Cleanup in onPause()
+      // --------------------
       qrEader.releaseAndCleanup();
     }
   }
 
   @Override
-  public void onDetected(final String data) {
-    Log.d("QREader", "Value : " + data);
-    text.post(new Runnable() {
-      @Override
-      public void run() {
-        text.setText(data);
-      }
-    });
+  protected void onResume() {
+    super.onResume();
+
+    if (hasCameraPermission) {
+
+      // Init and Start with SurfaceView
+      // -------------------------------
+      qrEader.initAndStart(mySurfaceView);
+    }
+  }
+
+  @Override
+  public void onRequestPermissionsResult(int requestCode, @NonNull final String[] permissions,
+      @NonNull final int[] grantResults) {
+    if (requestCode == 100) {
+      RuntimePermissionUtil.onRequestPermissionsResult(grantResults, new RPResultListener() {
+        @Override
+        public void onPermissionGranted() {
+          if ( RuntimePermissionUtil.checkPermissonGranted(MainActivity.this, cameraPerm)) {
+            restartActivity();
+          }
+        }
+
+        @Override
+        public void onPermissionDenied() {
+          // do nothing
+        }
+      });
+    }
   }
 }
