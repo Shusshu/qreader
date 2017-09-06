@@ -109,14 +109,15 @@ public class QREader {
   public void initAndStart(final SurfaceView surfaceView) {
 
     surfaceView.getViewTreeObserver()
-        .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-          @Override
-          public void onGlobalLayout() {
-            init();
-            start();
-            removeOnGlobalLayoutListener(surfaceView, this);
-          }
-        });
+            .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+              @Override
+              public void onGlobalLayout() {
+                init();
+                start();
+                removeOnGlobalLayoutListener(surfaceView, this);
+              }
+            });
+  }
 
   /**
    * Init.
