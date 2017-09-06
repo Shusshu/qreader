@@ -26,12 +26,13 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+
 import android.view.View;
 import android.view.ViewTreeObserver;
-import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
+
 import java.io.IOException;
 
 /**
@@ -46,7 +47,10 @@ public class QREader {
    * The constant BACK_CAM.
    */
   public static final int BACK_CAM = CameraSource.CAMERA_FACING_BACK;
+
   private final String LOGTAG = getClass().getSimpleName();
+  private final String[] autofocusModes;
+  private final String flashMode;
   private final int width;
   private final int height;
   private final int facing;
@@ -55,7 +59,6 @@ public class QREader {
   private final SurfaceView surfaceView;
   private CameraSource cameraSource = null;
   private BarcodeDetector barcodeDetector = null;
-  private boolean autoFocusEnabled;
 
   private boolean cameraRunning = false;
 
@@ -86,13 +89,9 @@ public class QREader {
    * @param builder
    *     the builder
    */
-/*
-   * Instantiates a new QREader
-   *
-   * @param builder the builder
-   */
-  private QREader(final Builder builder) {
-    this.autoFocusEnabled = builder.autofocusEnabled;
+  public QREader(final Builder builder) {
+    this.autofocusModes = builder.autofocusModes;
+    this.flashMode = builder.flashMode;
     this.width = builder.width;
     this.height = builder.height;
     this.facing = builder.facing;
@@ -107,7 +106,6 @@ public class QREader {
       this.barcodeDetector = builder.barcodeDetector;
     }
   }
-
   public void initAndStart(final SurfaceView surfaceView) {
 
     surfaceView.getViewTreeObserver()
@@ -119,16 +117,15 @@ public class QREader {
             removeOnGlobalLayoutListener(surfaceView, this);
           }
         });
-  }
 
   /**
    * Init.
    */
   private void init() {
-    if (!hasAutofocus(context)) {
-      Log.e(LOGTAG, "Do not have autofocus feature, disabling autofocus feature in the library!");
-      autoFocusEnabled = false;
-    }
+//    if (!hasAutofocus(context)) {
+//      Log.e(LOGTAG, "Do not have autofocus feature, disabling autofocus feature in the library!");
+//      autoFocusEnabled = false;
+//    }
 
     if (!hasCameraHardware(context)) {
       Log.e(LOGTAG, "Does not have camera hardware!");
@@ -155,11 +152,19 @@ public class QREader {
         }
       });
 
-      cameraSource =
-          new CameraSource.Builder(context, barcodeDetector).setAutoFocusEnabled(autoFocusEnabled)
+      final CameraSource.Builder cameraSourceBuilder =
+          new CameraSource.Builder(context, barcodeDetector)
               .setFacing(facing)
-              .setRequestedPreviewSize(width, height)
-              .build();
+              .setRequestedPreviewSize(width, height);
+
+        if (autofocusModes != null) {
+            cameraSourceBuilder.setFocusModes(autofocusModes);
+        }
+        if (flashMode != null) {
+            cameraSourceBuilder.setFlashMode(flashMode);
+        }
+
+        cameraSource = cameraSourceBuilder.build();
     }
     else {
       Log.e(LOGTAG, "Barcode recognition libs are not downloaded and are not operational");
@@ -270,7 +275,8 @@ public class QREader {
     private final QRDataListener qrDataListener;
     private final Context context;
     private final SurfaceView surfaceView;
-    private boolean autofocusEnabled;
+    private String[] autofocusModes;
+    private String flashMode;
     private int width;
     private int height;
     private int facing;
@@ -287,7 +293,6 @@ public class QREader {
      *     the qr data listener
      */
     public Builder(Context context, SurfaceView surfaceView, QRDataListener qrDataListener) {
-      this.autofocusEnabled = true;
       this.width = 800;
       this.height = 800;
       this.facing = BACK_CAM;
@@ -297,14 +302,26 @@ public class QREader {
     }
 
     /**
-     * Enable autofocus builder.
+     * autofocusMode builder.
      *
-     * @param autofocusEnabled
-     *     the autofocus enabled
+     * @param autofocusModes
+     *     the autofocusModes in order of priority
      * @return the builder
      */
-    public Builder enableAutofocus(boolean autofocusEnabled) {
-      this.autofocusEnabled = autofocusEnabled;
+    public Builder setFocusModes(@CameraSource.FocusMode String ... autofocusModes) {
+      this.autofocusModes = autofocusModes;
+      return this;
+    }
+
+    /**
+     * flashMode builder.
+     *
+     * @param flashMode
+     *     the autofocusMode
+     * @return the builder
+     */
+    public Builder setFlashMode(@CameraSource.FlashMode String flashMode) {
+      this.flashMode = flashMode;
       return this;
     }
 
