@@ -26,6 +26,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.os.Build;
 import android.os.SystemClock;
+import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresPermission;
 import android.support.annotation.StringDef;
@@ -77,6 +78,13 @@ public class CameraSource {
     public static final int CAMERA_FACING_BACK = CameraInfo.CAMERA_FACING_BACK;
     @SuppressLint("InlinedApi")
     public static final int CAMERA_FACING_FRONT = CameraInfo.CAMERA_FACING_FRONT;
+
+    @IntDef({
+            CAMERA_FACING_BACK,
+            CAMERA_FACING_FRONT
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface FacingMode {}
 
     private static final String TAG = "OpenCameraSource";
 
@@ -240,7 +248,7 @@ public class CameraSource {
          * Sets the camera to use (either {@link #CAMERA_FACING_BACK} or
          * {@link #CAMERA_FACING_FRONT}). Default: back facing.
          */
-        public Builder setFacing(int facing) {
+        public Builder setFacing(@FacingMode int facing) {
             if ((facing != CAMERA_FACING_BACK) && (facing != CAMERA_FACING_FRONT)) {
                 throw new IllegalArgumentException("Invalid camera: " + facing);
             }
@@ -340,6 +348,7 @@ public class CameraSource {
      *
      * @throws IOException if the camera's preview texture or display could not be initialized
      */
+    @SuppressLint("MissingPermission")
     @RequiresPermission(Manifest.permission.CAMERA)
     public CameraSource start() throws IOException {
         synchronized (mCameraLock) {
@@ -375,6 +384,7 @@ public class CameraSource {
      * @param surfaceHolder the surface holder to use for the preview frames
      * @throws IOException if the supplied surface holder could not be used as the preview display
      */
+    @SuppressLint("MissingPermission")
     @RequiresPermission(Manifest.permission.CAMERA)
     public CameraSource start(SurfaceHolder surfaceHolder) throws IOException {
         synchronized (mCameraLock) {

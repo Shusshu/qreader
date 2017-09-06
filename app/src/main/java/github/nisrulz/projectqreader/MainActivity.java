@@ -18,6 +18,7 @@ package github.nisrulz.projectqreader;
 
 import android.Manifest;
 import android.content.Intent;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -107,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
         });
       }
     }).facing(QREader.BACK_CAM)
-        .enableAutofocus(true)
+            .setFocusModes(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE, Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)
         .height(mySurfaceView.getHeight())
         .width(mySurfaceView.getWidth())
         .build();

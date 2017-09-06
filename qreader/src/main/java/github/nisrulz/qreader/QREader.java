@@ -17,6 +17,7 @@
 package github.nisrulz.qreader;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -50,10 +51,10 @@ public class QREader {
 
   private final String LOGTAG = getClass().getSimpleName();
   private final String[] autofocusModes;
-  private final String flashMode;
+  private final @CameraSource.FlashMode String flashMode;
   private final int width;
   private final int height;
-  private final int facing;
+  private final @CameraSource.FacingMode int facing;
   private final QRDataListener qrDataListener;
   private final Context context;
   private final SurfaceView surfaceView;
@@ -122,6 +123,7 @@ public class QREader {
   /**
    * Init.
    */
+  @SuppressLint("WrongConstant")
   private void init() {
 //    if (!hasAutofocus(context)) {
 //      Log.e(LOGTAG, "Do not have autofocus feature, disabling autofocus feature in the library!");
